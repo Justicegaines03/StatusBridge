@@ -2,7 +2,77 @@ import type {
   Incident,
   NetworkEvidence,
   StakeholderMessages,
+  UserReport,
 } from "../types";
+
+const MAX_TEMPLATE_TRIAGE = 12;
+const MAX_TEMPLATE_DESC_CHARS = 200;
+
+function triageForTemplate(
+  reports: UserReport[],
+  service: string,
+): UserReport[] {
+  return reports
+    .filter((r) => r.service === service)
+    .slice(0, MAX_TEMPLATE_TRIAGE)
+    .map((r) => ({
+      ...r,
+      description:
+        r.description.length > MAX_TEMPLATE_DESC_CHARS
+          ? `${r.description.slice(0, MAX_TEMPLATE_DESC_CHARS)}…`
+          : r.description,
+    }));
+}
+
+type TriageBlurb = { student: string; internal: string; executive: string };
+
+function buildTriageBlurbs(triage: UserReport[]): TriageBlurb | null {
+  if (triage.length === 0) {
+    return null;
+  }
+
+  const byLocation = new Map<string, number>();
+  for (const r of triage) {
+    const key = r.location.trim() || "unspecified location";
+    byLocation.set(key, (byLocation.get(key) ?? 0) + 1);
+  }
+  const ranked = [...byLocation.entries()].sort((a, b) => b[1] - a[1]);
+  const n = triage.length;
+  const volume =
+    n === 1
+      ? "One unverified campus report"
+      : n >= 4
+        ? `${n} unverified campus reports (notable volume)`
+        : `${n} unverified campus reports`;
+
+  const topPhrase = ranked
+    .slice(0, 4)
+    .map(([loc, c]) => (c > 1 ? `${loc} (${c})` : loc))
+    .join(", ");
+
+  const [headLoc, headCount] = ranked[0] ?? ["", 0];
+  const clusterNote =
+    headCount >= 2
+      ? ` Strongest cluster: ${headLoc} (${headCount}).`
+      : n >= 3
+        ? " Reports span several locations—no single site dominates."
+        : "";
+
+  const themeSamples = triage
+    .slice(0, 3)
+    .map((r) => r.description.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+  const themesPreview =
+    themeSamples.length > 0
+      ? ` Themes in descriptions: ${themeSamples.join(" · ")}${triage.length > 3 ? " …" : ""}`
+      : "";
+
+  return {
+    student: `Triage (unverified): ${volume}. Mentions by location/network: ${topPhrase}.${clusterNote}${themesPreview} Use the official message as truth; triage may be incomplete or wrong.`,
+    internal: `Triage: ${n} reports | loc skew: ${topPhrase}${clusterNote} | Cross-check descriptions for overlapping symptoms before assigning.`,
+    executive: `Unverified triage: ${volume}; geographic hint: ${topPhrase}.${clusterNote ? clusterNote.trim() : ""}`,
+  };
+}
 
 const statusLabels: Record<Incident["status"], string> = {
   operational: "operating normally",
@@ -63,10 +133,12 @@ type MessageVariant = "student" | "internal" | "executive";
 function buildCompactStakeholderBody(
   incident: Incident,
   variant: MessageVariant,
+  triageBlurb: TriageBlurb | null,
 ): string {
   const when = formatDateTime(incident.updatedAt);
   const headline = `${incident.service} · ${formatStatus(incident.status)} · ${incident.severity} · ${when}`;
   const official = `Official (status.uoregon.edu): "${incident.message}"`;
+  const triageLine = triageBlurb ? triageBlurb[variant] : null;
 
   if (incident.status === "operational") {
     const affected =
@@ -83,7 +155,12 @@ function buildCompactStakeholderBody(
           ? `Next: tag ${when} · escalate only if tools disagree with status page`
           : `Next: brief leaders on measured impact only · media via Comms & CIO`;
 
-    return [headline, "", official, "", affected, "", next].join("\n");
+    const core = [headline, "", official];
+    if (triageLine) {
+      core.push("", triageLine);
+    }
+    core.push("", affected, "", next);
+    return core.join("\n");
   }
 
   const statusPhrase = statusLabels[incident.status];
@@ -102,16 +179,24 @@ function buildCompactStakeholderBody(
         ? `Next: cite ${when} + official above · pause risky deploys on dependents until green`
         : `Next: loop Comms if harm/press · no ETAs unless posted on status`;
 
-  return [headline, "", official, "", affected, "", next].join("\n");
+  const core = [headline, "", official];
+  if (triageLine) {
+    core.push("", triageLine);
+  }
+  core.push("", affected, "", next);
+  return core.join("\n");
 }
 
 export function generateStakeholderMessages(
   incident: Incident,
+  reports: UserReport[] = [],
 ): StakeholderMessages {
+  const triage = triageForTemplate(reports, incident.service);
+  const triageBlurb = buildTriageBlurbs(triage);
   return {
-    student: buildCompactStakeholderBody(incident, "student"),
-    internal: buildCompactStakeholderBody(incident, "internal"),
-    executive: buildCompactStakeholderBody(incident, "executive"),
+    student: buildCompactStakeholderBody(incident, "student", triageBlurb),
+    internal: buildCompactStakeholderBody(incident, "internal", triageBlurb),
+    executive: buildCompactStakeholderBody(incident, "executive", triageBlurb),
   };
 }
 

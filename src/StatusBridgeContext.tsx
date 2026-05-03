@@ -65,9 +65,9 @@ export function StatusBridgeProvider({ children }: { children: ReactNode }) {
     useState<StakeholderMessages>(() =>
       generateStakeholderMessages(
         mockIncidents.find((i) => i.id === "canvas") ?? mockIncidents[0],
+        [],
       ),
     );
-  const lastDraftRequestKeyRef = useRef<string>("");
 
   const selectedIncident = useMemo(
     () =>
@@ -105,21 +105,38 @@ export function StatusBridgeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    const requestKey = `${incidentSignature}\n${triageSignature}`;
-
-    // React StrictMode re-runs effects in development; skip identical work.
-    if (lastDraftRequestKeyRef.current === requestKey) {
-      return;
-    }
-    lastDraftRequestKeyRef.current = requestKey;
 
     void (async () => {
       const hasKey = Boolean(
         import.meta.env.VITE_GEMINI_API_KEY?.trim(),
       );
+      // #region agent log
+      fetch("http://127.0.0.1:7735/ingest/802d69fb-de10-4855-89a2-7541fa3b4a5e", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Debug-Session-Id": "4798fb",
+        },
+        body: JSON.stringify({
+          sessionId: "4798fb",
+          runId: "post-fix",
+          hypothesisId: "H1",
+          location: "StatusBridgeContext.tsx:draftEffect",
+          message: "stakeholder draft effect start",
+          data: {
+            hasKey,
+            incidentId: selectedIncident.id,
+            mode: import.meta.env.MODE,
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
       if (!hasKey) {
         if (!cancelled) {
-          setStakeholderDrafts(generateStakeholderMessages(selectedIncident));
+          setStakeholderDrafts(
+            generateStakeholderMessages(selectedIncident, reports),
+          );
         }
         return;
       }
@@ -128,6 +145,28 @@ export function StatusBridgeProvider({ children }: { children: ReactNode }) {
         selectedIncident,
         reports,
       );
+      // #region agent log
+      fetch("http://127.0.0.1:7735/ingest/802d69fb-de10-4855-89a2-7541fa3b4a5e", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Debug-Session-Id": "4798fb",
+        },
+        body: JSON.stringify({
+          sessionId: "4798fb",
+          runId: "post-fix",
+          hypothesisId: "H6",
+          location: "StatusBridgeContext.tsx:draftEffect:afterAwait",
+          message: "gemini await settled",
+          data: {
+            cancelled,
+            willApply: !cancelled,
+            draftStudentLen: next.student?.length ?? 0,
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
       if (!cancelled) {
         setStakeholderDrafts(next);
       }

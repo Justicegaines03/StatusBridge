@@ -1,181 +1,163 @@
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useStatusBridge } from "../StatusBridgeContext";
-import { mockIncidents } from "../data/incidents";
+import { Badge, CopyButton, severityClasses } from "../components/bridgeUi";
+import type { StakeholderMessages } from "../types";
 import {
-  Badge,
-  CopyButton,
-  Panel,
-  severityClasses,
-} from "../components/bridgeUi";
-import {
-  formatDateTime,
   formatStatus,
-  generateRssXml,
+  generateRssItemSnippet,
   generateWidgetSnippet,
 } from "../lib/generators";
 
+type ReadyFlags = { collaboration: boolean; campus: boolean; executive: boolean };
+
 export function OutreachPage() {
-  const { selectedIncident, networkEvidence, runEvidenceCheck } =
+  const { selectedIncident, stakeholderDrafts, setStakeholderDrafts } =
     useStatusBridge();
 
-  const rssXml = useMemo(() => generateRssXml(mockIncidents), []);
-  const widgetSnippet = useMemo(
-    () => generateWidgetSnippet(selectedIncident),
-    [selectedIncident],
+  const [widgetEmbed, setWidgetEmbed] = useState(() =>
+    generateWidgetSnippet(selectedIncident),
   );
-  const selectedEvidence = networkEvidence[selectedIncident.id];
+  const [rssItem, setRssItem] = useState(() =>
+    generateRssItemSnippet(selectedIncident),
+  );
+  const [ready, setReady] = useState<ReadyFlags>({
+    collaboration: false,
+    campus: false,
+    executive: false,
+  });
+
+  useEffect(() => {
+    setWidgetEmbed(generateWidgetSnippet(selectedIncident));
+    setRssItem(generateRssItemSnippet(selectedIncident));
+  }, [selectedIncident.id]);
+
+  const patchDraft = (key: keyof StakeholderMessages, value: string) => {
+    setStakeholderDrafts((d) => ({ ...d, [key]: value }));
+  };
+
+  const channels: {
+    key: keyof StakeholderMessages;
+    label: string;
+    hint: string;
+    readyKey: keyof ReadyFlags;
+  }[] = [
+    {
+      key: "internal",
+      label: "Collaboration",
+      hint: "Teams / Slack",
+      readyKey: "collaboration",
+    },
+    {
+      key: "student",
+      label: "Campus-facing",
+      hint: "Email / web / social",
+      readyKey: "campus",
+    },
+    {
+      key: "executive",
+      label: "Executive",
+      hint: "Brief / leadership",
+      readyKey: "executive",
+    },
+  ];
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm">
-        <p className="text-xs font-bold uppercase tracking-[0.28em] text-slate-500">
-          Step 3 · Outreach &amp; distribution
-        </p>
-        <p className="mt-2 max-w-3xl text-sm text-slate-600">
-          Previews for channels, unit sites, feeds, and optional ops context —
-          all tied to{" "}
-          <span className="font-semibold text-slate-800">
+    <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-hidden">
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-slate-100 pb-1.5">
+        <div className="min-w-0">
+          <h1 className="text-sm font-bold tracking-tight text-slate-950">
+            Approve &amp; send
+          </h1>
+          <p className="sr-only">
+            Same copy as Messages—edit, mark OK, copy into each channel.
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+          <span className="text-[0.65rem] font-semibold text-slate-800">
             {selectedIncident.service}
           </span>
-          .
-        </p>
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-2">
-        <Panel title="Collaboration thread preview" eyebrow="Channel-style layout">
-          <div className="rounded-2xl border border-slate-200 bg-[#f5f5fb] p-4">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-3">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">
-                  # incident-comms
-                </p>
-                <h3 className="mt-1 font-black text-slate-950">
-                  {selectedIncident.service} incident
-                </h3>
-              </div>
-              <Badge className={severityClasses[selectedIncident.severity]}>
-                {selectedIncident.severity}
-              </Badge>
-            </div>
-            <div className="mt-4 max-h-[min(22rem,45vh)] space-y-4 overflow-y-auto pr-1">
-              {[
-                [
-                  "Initial update",
-                  selectedIncident.message,
-                  selectedIncident.updatedAt,
-                ],
-                [
-                  "Investigation update",
-                  `IT is reviewing reports from ${selectedIncident.affectedAudience.toLowerCase()}`,
-                  new Date().toISOString(),
-                ],
-                [
-                  "Next suggested update",
-                  "Share a follow-up in 30 minutes or sooner if service conditions change.",
-                  new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-                ],
-              ].map(([title, body, timestamp]) => (
-                <div className="rounded-2xl bg-white p-3" key={title}>
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-bold text-slate-900">{title}</p>
-                    <p className="text-xs text-slate-500">
-                      {formatDateTime(timestamp)}
-                    </p>
-                  </div>
-                  <p className="mt-1 text-sm text-slate-600">{body}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Panel>
-
-        <Panel title="Embeddable unit widget" eyebrow="Department sites">
-          <div className="rounded-2xl border border-slate-200 bg-slate-950 p-4 text-white">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">
-              Department widget
-            </p>
-            <div className="mt-3 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-lg font-black">{selectedIncident.service}</p>
-                <p className="text-sm text-slate-300">
-                  {formatStatus(selectedIncident.status)}
-                </p>
-              </div>
-              <Badge className={severityClasses[selectedIncident.severity]}>
-                {selectedIncident.severity}
-              </Badge>
-            </div>
-            <p className="mt-3 text-sm text-slate-200">
-              {selectedIncident.message}
-            </p>
-          </div>
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3">
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <p className="text-sm font-bold text-slate-700">Embed snippet</p>
-              <CopyButton value={widgetSnippet} />
-            </div>
-            <code className="block max-h-40 overflow-auto whitespace-pre-wrap text-xs text-slate-700">
-              {widgetSnippet}
-            </code>
-          </div>
-        </Panel>
-      </div>
-
-      <Panel title="RSS feed output" eyebrow="Subscribers & integrations">
-        <pre className="max-h-64 overflow-auto rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-emerald-100">
-          <code>{rssXml}</code>
-        </pre>
-      </Panel>
-
-      <Panel title="Network evidence (optional)" eyebrow="Ops attachment">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-slate-600">
-            Attach a deterministic sample card for{" "}
-            <span className="font-bold text-slate-900">
-              {selectedIncident.service}
-            </span>{" "}
-            to pair with internal outreach. No live speed test required in this
-            build.
-          </p>
-          <button
-            className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-bold text-white transition hover:bg-emerald-700"
-            onClick={runEvidenceCheck}
-            type="button"
-          >
-            Generate evidence sample
-          </button>
+          <Badge className={severityClasses[selectedIncident.severity]}>
+            {selectedIncident.severity}
+          </Badge>
+          <span className="text-[0.6rem] capitalize text-slate-500">
+            {formatStatus(selectedIncident.status)}
+          </span>
         </div>
-        {selectedEvidence ? (
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              ["Latency", `${selectedEvidence.latencyMs}ms`],
-              ["Jitter", `${selectedEvidence.jitterMs}ms`],
-              ["Download", selectedEvidence.downloadQuality],
-              ["Upload", selectedEvidence.uploadQuality],
-            ].map(([label, value]) => (
-              <div
-                className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
-                key={label}
-              >
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
-                  {label}
-                </p>
-                <p className="mt-2 text-2xl font-black capitalize text-slate-950">
-                  {value}
-                </p>
-              </div>
-            ))}
-            <p className="sm:col-span-2 lg:col-span-4 text-sm text-slate-500">
-              Checked at {formatDateTime(selectedEvidence.checkedAt)}
-            </p>
-          </div>
-        ) : (
-          <p className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
-            No evidence sample generated for this incident yet.
-          </p>
-        )}
-      </Panel>
+      </header>
 
+      <div className="flex min-h-0 max-h-[min(46vh,calc(100dvh-17.5rem))] flex-1 flex-col gap-1.5 overflow-hidden lg:flex-row lg:gap-2">
+        {channels.map(({ key, label, hint, readyKey }) => (
+          <section
+            className="flex min-h-0 flex-1 flex-col rounded-xl border border-slate-200 bg-white p-2 shadow-soft"
+            key={key}
+          >
+            <div className="flex shrink-0 items-start justify-between gap-2">
+              <div>
+                <h2 className="text-xs font-bold text-slate-900">{label}</h2>
+                <p className="text-[0.65rem] text-slate-500">{hint}</p>
+              </div>
+              <label className="flex shrink-0 cursor-pointer items-center gap-1 text-[0.65rem] text-slate-600">
+                <input
+                  checked={ready[readyKey]}
+                  className="rounded border-slate-300 text-emerald-700 focus:ring-emerald-500"
+                  onChange={(event) =>
+                    setReady((r) => ({
+                      ...r,
+                      [readyKey]: event.target.checked,
+                    }))
+                  }
+                  type="checkbox"
+                />
+                OK
+              </label>
+            </div>
+            <textarea
+              className="mt-0.5 min-h-0 w-full flex-1 resize-none rounded-md border border-slate-200 px-1 py-0.5 text-[8px] leading-[1.28] text-slate-800 outline-none focus:border-emerald-300 focus:ring-1 focus:ring-emerald-500/30 sm:text-[9px] sm:leading-[1.32]"
+              onChange={(event) => patchDraft(key, event.target.value)}
+              spellCheck={true}
+              value={stakeholderDrafts[key]}
+            />
+            <div className="mt-0.5 flex shrink-0 justify-end">
+              <CopyButton value={stakeholderDrafts[key]} />
+            </div>
+          </section>
+        ))}
+      </div>
+
+      <div className="shrink-0 grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-soft">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-xs font-bold text-slate-900">Unit widget</h2>
+              <p className="text-[0.65rem] text-slate-500">Embed HTML</p>
+            </div>
+            <CopyButton value={widgetEmbed} />
+          </div>
+          <textarea
+            className="mt-3 w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-2 py-1.5 font-mono text-[10px] leading-snug text-slate-700"
+            onChange={(event) => setWidgetEmbed(event.target.value)}
+            rows={2}
+            spellCheck={false}
+            value={widgetEmbed}
+          />
+        </section>
+        <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-soft">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-xs font-bold text-slate-900">RSS item</h2>
+              <p className="text-[0.65rem] text-slate-500">Paste into feed</p>
+            </div>
+            <CopyButton value={rssItem} />
+          </div>
+          <textarea
+            className="mt-3 w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-2 py-1.5 font-mono text-[10px] leading-snug text-slate-700"
+            onChange={(event) => setRssItem(event.target.value)}
+            rows={3}
+            spellCheck={false}
+            value={rssItem}
+          />
+        </section>
+      </div>
     </div>
   );
 }

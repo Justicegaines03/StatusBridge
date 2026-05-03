@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useStatusBridge } from "../StatusBridgeContext";
 import { Badge, CopyButton, severityClasses } from "../components/bridgeUi";
-import { generateStakeholderMessages } from "../lib/generators";
 
 type AudienceKey = "student" | "internal" | "executive";
 
@@ -12,22 +11,16 @@ const audienceTabs: { key: AudienceKey; label: string; hint: string }[] = [
 ];
 
 export function MessagesPage() {
-  const { selectedIncident } = useStatusBridge();
+  const { selectedIncident, stakeholderDrafts, setStakeholderDrafts } =
+    useStatusBridge();
   const [audience, setAudience] = useState<AudienceKey>("student");
-  const [drafts, setDrafts] = useState(() =>
-    generateStakeholderMessages(selectedIncident),
-  );
-
-  useEffect(() => {
-    setDrafts(generateStakeholderMessages(selectedIncident));
-  }, [selectedIncident.id]);
 
   const activeBody =
     audience === "student"
-      ? drafts.student
+      ? stakeholderDrafts.student
       : audience === "internal"
-        ? drafts.internal
-        : drafts.executive;
+        ? stakeholderDrafts.internal
+        : stakeholderDrafts.executive;
 
   const activeHint =
     audienceTabs.find((t) => t.key === audience)?.hint ?? "Message";
@@ -90,7 +83,7 @@ export function MessagesPage() {
             <textarea
               value={activeBody}
               onChange={(event) =>
-                setDrafts((previous) => ({
+                setStakeholderDrafts((previous) => ({
                   ...previous,
                   [audience]: event.target.value,
                 }))

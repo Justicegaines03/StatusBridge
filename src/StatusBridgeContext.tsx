@@ -10,8 +10,16 @@ import {
   type ReactNode,
 } from "react";
 import { mockIncidents } from "./data/incidents";
-import { generateNetworkEvidence } from "./lib/generators";
-import type { Incident, NetworkEvidence, UserReport } from "./types";
+import {
+  generateNetworkEvidence,
+  generateStakeholderMessages,
+} from "./lib/generators";
+import type {
+  Incident,
+  NetworkEvidence,
+  StakeholderMessages,
+  UserReport,
+} from "./types";
 
 const defaultServiceName =
   mockIncidents.find((i) => i.id === "canvas")?.service ??
@@ -31,6 +39,10 @@ type StatusBridgeContextValue = {
   reports: UserReport[];
   reportDraft: typeof emptyReport;
   setReportDraft: React.Dispatch<React.SetStateAction<typeof emptyReport>>;
+  stakeholderDrafts: StakeholderMessages;
+  setStakeholderDrafts: React.Dispatch<
+    React.SetStateAction<StakeholderMessages>
+  >;
   networkEvidence: Record<string, NetworkEvidence>;
   submitReport: (event: FormEvent<HTMLFormElement>) => void;
   runEvidenceCheck: () => void;
@@ -51,6 +63,12 @@ export function StatusBridgeProvider({ children }: { children: ReactNode }) {
   const [networkEvidence, setNetworkEvidence] = useState<
     Record<string, NetworkEvidence>
   >({});
+  const [stakeholderDrafts, setStakeholderDrafts] =
+    useState<StakeholderMessages>(() =>
+      generateStakeholderMessages(
+        mockIncidents.find((i) => i.id === "canvas") ?? mockIncidents[0],
+      ),
+    );
 
   const selectedIncident = useMemo(
     () =>
@@ -65,6 +83,10 @@ export function StatusBridgeProvider({ children }: { children: ReactNode }) {
       service: selectedIncident.service,
     }));
   }, [selectedIncident.service]);
+
+  useEffect(() => {
+    setStakeholderDrafts(generateStakeholderMessages(selectedIncident));
+  }, [selectedIncident.id]);
 
   const submitReport = useCallback((event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -108,6 +130,8 @@ export function StatusBridgeProvider({ children }: { children: ReactNode }) {
       reports,
       reportDraft,
       setReportDraft,
+      stakeholderDrafts,
+      setStakeholderDrafts,
       networkEvidence,
       submitReport,
       runEvidenceCheck,
@@ -117,6 +141,7 @@ export function StatusBridgeProvider({ children }: { children: ReactNode }) {
       selectedIncident,
       reports,
       reportDraft,
+      stakeholderDrafts,
       networkEvidence,
       submitReport,
       runEvidenceCheck,

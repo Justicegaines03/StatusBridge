@@ -56,94 +56,53 @@ export function formatStatus(status: Incident["status"]): string {
 
 type MessageVariant = "student" | "internal" | "executive";
 
-/** Compact copy blocks: short enough to avoid textarea scrolling on a typical laptop layout. */
+/**
+ * Ultra-compact copy: ~6–8 lines so Outreach channel textareas fit without scrolling
+ * at 8–9px type on a typical laptop + Messages stays readable.
+ */
 function buildCompactStakeholderBody(
   incident: Incident,
   variant: MessageVariant,
 ): string {
   const when = formatDateTime(incident.updatedAt);
-  const headline = `${incident.service} · ${formatStatus(incident.status)} · ${incident.severity} · updated ${when}`;
-  const officialBlock = [
-    "OFFICIAL (status.uoregon.edu)",
-    `"${incident.message}"`,
-  ].join("\n");
+  const headline = `${incident.service} · ${formatStatus(incident.status)} · ${incident.severity} · ${when}`;
+  const official = `Official (status.uoregon.edu): "${incident.message}"`;
 
   if (incident.status === "operational") {
     const affected =
       variant === "student"
-        ? [
-            "AFFECTED",
-            `${incident.affectedAudience} — Status shows operational; errors may be device or network-specific.`,
-          ].join("\n")
+        ? `Audience: ${incident.affectedAudience} — operational on status; local/device issues possible.`
         : variant === "internal"
-          ? [
-              "AFFECTED",
-              `${incident.affectedAudience} — Treat reports as isolated unless monitors contradict status.uoregon.edu.`,
-            ].join("\n")
-          : [
-              "AFFECTED",
-              `${incident.affectedAudience} — No exec action unless impact metrics or vendor risk spike.`,
-            ].join("\n");
+          ? `Audience: ${incident.affectedAudience} — isolate tickets unless monitors contradict status.uoregon.edu.`
+          : `Audience: ${incident.affectedAudience} — exec action only if metrics or vendor risk spike.`;
 
     const next =
       variant === "student"
-        ? ["NEXT STEPS", "• Retry or try another browser/network.", "• Help: service.uoregon.edu"].join(
-            "\n",
-          )
+        ? `Next: retry / other browser or network · Help: service.uoregon.edu`
         : variant === "internal"
-          ? [
-              "NEXT STEPS",
-              `• Tag tickets with status time (${when}).`,
-              "• Escalate only if tooling disagrees with the status page.",
-            ].join("\n")
-          : [
-              "NEXT STEPS",
-              "• Brief leadership only on measurable impact change.",
-              "• Media / exec comms via University Communications & CIO protocols.",
-            ].join("\n");
+          ? `Next: tag ${when} · escalate only if tools disagree with status page`
+          : `Next: brief leaders on measured impact only · media via Comms & CIO`;
 
-    return [headline, "", officialBlock, "", affected, "", next].join("\n");
+    return [headline, "", official, "", affected, "", next].join("\n");
   }
 
   const statusPhrase = statusLabels[incident.status];
 
   const affected =
     variant === "student"
-      ? [
-          "AFFECTED",
-          `${incident.affectedAudience} — Service is ${statusPhrase}; symptoms may vary by location or device.`,
-        ].join("\n")
+      ? `Audience: ${incident.affectedAudience} — ${statusPhrase}; impact may vary by site/device.`
       : variant === "internal"
-        ? [
-            "AFFECTED",
-            `${incident.affectedAudience} — Align response to ${incident.severity}; mirror official language externally.`,
-          ].join("\n")
-        : [
-            "AFFECTED",
-            `${incident.affectedAudience} — Watch teaching/research deadlines and comms risk until cleared.`,
-          ].join("\n");
+        ? `Audience: ${incident.affectedAudience} — sev ${incident.severity}; mirror official wording externally.`
+        : `Audience: ${incident.affectedAudience} — watch deadlines & comms risk until cleared.`;
 
   const next =
     variant === "student"
-      ? [
-          "NEXT STEPS",
-          "• Watch status.uoregon.edu for updates.",
-          "• Save work often; use alternatives only if your instructor/supervisor approves.",
-          "• Help Desk if blocked: service.uoregon.edu",
-        ].join("\n")
+      ? `Next: status.uoregon.edu · save work · alt tools only if approved · Help: service.uoregon.edu`
       : variant === "internal"
-        ? [
-            "NEXT STEPS",
-            `• Bridge / ticket hygiene; cite ${when} and official text above.`,
-            "• Pause risky changes on dependent systems until green.",
-          ].join("\n")
-        : [
-            "NEXT STEPS",
-            "• Sync with Communications if harm or press interest grows.",
-            "• Avoid speculative ETAs unless engineering posts them on status.",
-          ].join("\n");
+        ? `Next: cite ${when} + official above · pause risky deploys on dependents until green`
+        : `Next: loop Comms if harm/press · no ETAs unless posted on status`;
 
-  return [headline, "", officialBlock, "", affected, "", next].join("\n");
+  return [headline, "", official, "", affected, "", next].join("\n");
 }
 
 export function generateStakeholderMessages(
@@ -154,6 +113,26 @@ export function generateStakeholderMessages(
     internal: buildCompactStakeholderBody(incident, "internal"),
     executive: buildCompactStakeholderBody(incident, "executive"),
   };
+}
+
+function escapeXml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/** RSS 2.0 item for paste fields — formatted across lines for readability in the UI. */
+export function generateRssItemSnippet(incident: Incident): string {
+  const title = `${incident.service} — ${formatStatus(incident.status)}`;
+  const pub = new Date(incident.updatedAt).toUTCString();
+  return `<item>
+  <title>${escapeXml(title)}</title>
+  <description>${escapeXml(incident.message)}</description>
+  <pubDate>${pub}</pubDate>
+  <guid isPermaLink="false">statusbridge-${incident.id}</guid>
+</item>`;
 }
 
 export function generateRssXml(incidents: Incident[]): string {

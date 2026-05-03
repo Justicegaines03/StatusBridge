@@ -8,7 +8,7 @@ The shipped experience uses **realistic mock services** (UO-style naming) so rev
 
 ## The story
 
-Universities invest in official status pages, yet during an incident the same underlying fact still has to reach students, IT staff, executives, department sites, and downstream tools—often through separate drafts, channels, and formats. StatusBridge is the **bridge** between “what IT knows” and “what each audience needs to see,” without replacing the authoritative source.
+Universities invest in official status pages, yet during an incident the same underlying fact still has to reach students, IT staff, executives, department sites, and downstream tools—often through separate drafts, channels, and formats. The team that maintains a page such as **status.uoregon.edu** would use StatusBridge **after** publishing there: the official page stays canonical; StatusBridge is where that same team turns one verified incident into every other format the campus needs.
 
 ---
 
@@ -101,17 +101,13 @@ A control attaches **deterministic sample** latency, jitter, and quality indicat
 
 ## Product tour (what reviewers see)
 
-The experience is designed to read as a **single incident story** end to end.
+The interface follows the **status-team workflow**: confirm what was published on the official page, capture intake, then generate copy and channel previews.
 
-1. **Roster** — The opening view establishes scope: multiple services, mixed health, and severity at a glance.
-2. **Selection** — Focus moves to one incident; the right-hand surface becomes the communication workspace for that case.
-3. **Audiences** — Stakeholder blocks appear side by side, showing one incident expressed as student, internal, and executive language.
-4. **Operations** — The thread-style panel shows how the same incident reads as a time-ordered operational channel, including suggested follow-up cadence.
-5. **Distribution** — The widget preview and snippet illustrate embedding on college or department pages; the RSS panel shows machine-readable redistribution.
-6. **Signal intake** — The report form and queue model how grassroots reports enter the picture alongside top-down status.
-7. **Evidence (optional)** — The network evidence action rounds out the story with a concrete operational attachment tied to the selected service.
+1. **Incident workspace and intake** — Services mirror the official roster; the team selects the active line item, sees the **canonical message** aligned with the status page, files **campus outage reports** through intake, and reviews the **triage queue**.
+2. **Copy-ready messaging** — **Student**, **IT/internal**, and **executive** text is derived from that selection for paste-ready use in email, chat, and briefings.
+3. **Outreach and distribution** — **Collaboration-style thread**, **embeddable unit widget** (with snippet), **RSS** for feeds and integrations, and optional **network evidence** for operational context complete the picture.
 
-Together, these panels tell a coherent product story: **normalize once, communicate everywhere the campus looks.**
+Together, the flow reads: **publish on the official page first, then redistribute everywhere else from one workspace.**
 
 ---
 

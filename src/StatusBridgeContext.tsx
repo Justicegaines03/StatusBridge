@@ -1,0 +1,123 @@
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
+import { mockIncidents } from "./data/incidents";
+import { generateNetworkEvidence } from "./lib/generators";
+import type { Incident, NetworkEvidence, UserReport } from "./types";
+
+export const emptyReport = {
+  service: "Wireless",
+  location: "",
+  description: "",
+  contact: "",
+};
+
+type StatusBridgeContextValue = {
+  selectedIncidentId: string;
+  setSelectedIncidentId: (id: string) => void;
+  selectedIncident: Incident;
+  reports: UserReport[];
+  reportDraft: typeof emptyReport;
+  setReportDraft: React.Dispatch<React.SetStateAction<typeof emptyReport>>;
+  networkEvidence: Record<string, NetworkEvidence>;
+  submitReport: (event: FormEvent<HTMLFormElement>) => void;
+  runEvidenceCheck: () => void;
+};
+
+const StatusBridgeContext = createContext<StatusBridgeContextValue | null>(
+  null,
+);
+
+export function StatusBridgeProvider({ children }: { children: ReactNode }) {
+  const [selectedIncidentId, setSelectedIncidentId] = useState(
+    mockIncidents[0].id,
+  );
+  const [reports, setReports] = useState<UserReport[]>([]);
+  const [reportDraft, setReportDraft] = useState(emptyReport);
+  const [networkEvidence, setNetworkEvidence] = useState<
+    Record<string, NetworkEvidence>
+  >({});
+
+  const selectedIncident = useMemo(
+    () =>
+      mockIncidents.find((incident) => incident.id === selectedIncidentId) ??
+      mockIncidents[0],
+    [selectedIncidentId],
+  );
+
+  const submitReport = useCallback((event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    setReportDraft((draft) => {
+      if (!draft.location.trim() || !draft.description.trim()) {
+        return draft;
+      }
+
+      setReports((currentReports) => [
+        {
+          id: crypto.randomUUID(),
+          service: draft.service,
+          location: draft.location.trim(),
+          description: draft.description.trim(),
+          contact: draft.contact.trim() || undefined,
+          createdAt: new Date().toISOString(),
+        },
+        ...currentReports,
+      ]);
+      return { ...emptyReport, service: draft.service };
+    });
+  }, []);
+
+  const runEvidenceCheck = useCallback(() => {
+    setNetworkEvidence((currentEvidence) => {
+      const incident =
+        mockIncidents.find((i) => i.id === selectedIncidentId) ??
+        mockIncidents[0];
+      const evidence = generateNetworkEvidence(incident);
+      return { ...currentEvidence, [incident.id]: evidence };
+    });
+  }, [selectedIncidentId]);
+
+  const value = useMemo(
+    () => ({
+      selectedIncidentId,
+      setSelectedIncidentId,
+      selectedIncident,
+      reports,
+      reportDraft,
+      setReportDraft,
+      networkEvidence,
+      submitReport,
+      runEvidenceCheck,
+    }),
+    [
+      selectedIncidentId,
+      selectedIncident,
+      reports,
+      reportDraft,
+      networkEvidence,
+      submitReport,
+      runEvidenceCheck,
+    ],
+  );
+
+  return (
+    <StatusBridgeContext.Provider value={value}>
+      {children}
+    </StatusBridgeContext.Provider>
+  );
+}
+
+export function useStatusBridge() {
+  const ctx = useContext(StatusBridgeContext);
+  if (!ctx) {
+    throw new Error("useStatusBridge must be used within StatusBridgeProvider");
+  }
+  return ctx;
+}

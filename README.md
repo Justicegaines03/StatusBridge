@@ -1,66 +1,65 @@
 # StatusBridge Lite
 
-StatusBridge Lite is a hackathon prototype that shows how a university could make official IT status information more accessible without replacing the official status page.
+**StatusBridge Lite** is a reference implementation of an **incident communication layer** for higher education IT. It sits alongside the official status page: the status page remains the system of record; StatusBridge turns incident signals into **audience-specific, channel-ready outputs** in one place.
 
-## Core Demo Story
+The shipped experience uses **realistic mock services** (UO-style naming) so reviewers can evaluate flows and copy without live production feeds or external integrations.
 
-Universities already have official status pages, but status communication is still manual. StatusBridge Lite does not replace the official page. It helps redistribute and contextualize status information by turning incidents into RSS updates, Teams-style threads, embeddable widgets, outage reports, and stakeholder-ready messages.
+---
 
-The official status page remains the source of truth. StatusBridge Lite is the communication layer around it.
+## The story
+
+Universities invest in official status pages, yet during an incident the same underlying fact still has to reach students, IT staff, executives, department sites, and downstream tools—often through separate drafts, channels, and formats. StatusBridge is the **bridge** between “what IT knows” and “what each audience needs to see,” without replacing the authoritative source.
+
+---
 
 ## Problem
 
-During an IT incident, the same status update often has to be repackaged for several audiences:
+When services degrade or fail, communication work multiplies:
 
-- Students need a plain-language update.
-- IT teams need an operational thread.
-- Executives need a concise summary.
-- Departments may want an embeddable service status card.
-- Other tools may need RSS-style machine-readable updates.
-- Help desks need a way to collect bottom-up outage reports.
+- **Students and campus users** need clear, non-technical language and timely reassurance.
+- **IT and operations** need a consistent operational narrative they can extend over time.
+- **Leadership** needs short, decision-ready summaries.
+- **Departments and college sites** need embeddable indicators that match official posture.
+- **Automation and campus systems** benefit from structured, machine-readable feeds.
+- **Support organizations** need a structured path for crowdsourced reports from the field.
 
-That work is repetitive, time-sensitive, and easy to delay during an incident.
+That work is **repetitive, urgent, and easy to defer** when teams are focused on restoration—exactly when communication matters most.
+
+---
 
 ## Solution
 
-StatusBridge Lite takes UO-like mock incident data, normalizes it into a consistent TypeScript shape, and generates reusable communication outputs in one local dashboard.
+StatusBridge Lite **normalizes** incident-like inputs into a single internal model, then **derives** parallel outputs from that model: stakeholder-ready text, a collaboration-style thread layout, RSS-style XML for active incidents, an embeddable widget representation, a local intake queue for user-submitted reports, and an optional deterministic “network evidence” card for operational context.
+
+One normalized incident drives many surfaces—so messaging stays **aligned** even when the format changes.
 
 ```text
-Mock UO-like incident data
+Incident signals (mock / companion to official page)
         |
 normalizeIncident()
         |
-Current Incidents Dashboard
+Current Incidents view
         |
-Generated Outputs
-  - stakeholder messages
-  - Teams-style thread preview
-  - RSS XML preview
-  - embeddable widget snippet
-  - user report queue
-        |
-Optional network evidence card
+Derived outputs
+  · Stakeholder messages (student / IT / executive)
+  · Collaboration-style thread preview
+  · RSS XML (active incidents)
+  · Embeddable widget + snippet
+  · User report queue
+  · Optional network evidence card
 ```
 
-## MVP Features
+---
 
-### Current Incidents Dashboard
+## Features
 
-Shows mock UO-like incidents for:
+### Current incidents
 
-- Wireless
-- Canvas
-- DuckWeb
-- Email
-- VPN
+A dashboard lists monitored services (e.g. wireless, learning management, identity, email, VPN) with **status**, **severity**, **human-readable message**, **source**, and **last updated** time. Reviewers see service impact at a glance and select any incident to drive the rest of the product.
 
-Each incident includes service name, status, severity, message, source, and last updated time.
+### Incident model
 
-Demo value: gives judges a clear home screen that immediately shows service impact.
-
-### Incident Normalizer
-
-The app includes a `normalizeIncident()` function that converts incident data into one standard shape.
+Incidents conform to a single TypeScript shape—status, severity, service identity, messaging, provenance, and timestamps—so every downstream generator reads the same truth.
 
 ```ts
 type Incident = {
@@ -74,93 +73,68 @@ type Incident = {
 };
 ```
 
-Demo value: shows how inconsistent status signals can become clean, reusable communication objects.
+### Stakeholder messaging
 
-### Stakeholder Message Generator
+For the selected incident, the product produces **copy-ready** variants: student-facing, IT/internal, and executive summary—each tuned to the same facts so tone and emphasis match the audience without manual rewrites from scratch.
 
-For each selected incident, the app generates copy-ready messages for:
+### Collaboration-style thread
 
-- Student-facing updates
-- IT/internal updates
-- Executive summaries
+A **channel-style** preview presents the incident as a threaded operational narrative: initial update, follow-on context, and suggested next communication—with timestamps and severity visible in line with how many campuses run incident comms in chat tools.
 
-Demo value: this directly reduces manual communication overhead during incidents.
+### RSS output
 
-### Teams-Style Incident Thread Preview
+Active (non-operational) incidents are reflected in **visible RSS XML**, illustrating subscription and integration paths for portals, monitors, and other systems.
 
-Shows how an incident could appear in a collaboration channel, including a severity badge, latest update, suggested next message, and timestamped thread layout.
+### Embeddable status widget
 
-This is a preview only. It does not send real Teams messages.
+A compact **department-facing** status card mirrors the selected incident, paired with a **copyable embed snippet** so the same posture can be reflected on unit websites without duplicating status infrastructure.
 
-Demo value: makes the workflow feel operational and status-ops aligned without requiring external accounts or webhooks.
+### Outage reporting
 
-### RSS Preview
+A structured form captures **service**, **location or network**, **description**, and optional **contact**. Submissions appear in an **on-device queue** in this reference build, modeling bottom-up signal from campus users into the comms workflow.
 
-Generates visible RSS XML for active incidents.
+### Network evidence (sample)
 
-Demo value: shows how status updates could be consumed by other tools, subscribers, or campus systems.
+A control attaches **deterministic sample** latency, jitter, and quality indicators to the selected incident, illustrating how operational evidence can sit next to narrative updates without depending on live network tests in a review environment.
 
-### Embeddable Widget Preview
+---
 
-Shows a compact status widget and copyable iframe-style snippet.
+## Product tour (what reviewers see)
 
-Demo value: demonstrates how departments could display relevant status information without rebuilding status tooling.
+The experience is designed to read as a **single incident story** end to end.
 
-### Report Outage Form
+1. **Roster** — The opening view establishes scope: multiple services, mixed health, and severity at a glance.
+2. **Selection** — Focus moves to one incident; the right-hand surface becomes the communication workspace for that case.
+3. **Audiences** — Stakeholder blocks appear side by side, showing one incident expressed as student, internal, and executive language.
+4. **Operations** — The thread-style panel shows how the same incident reads as a time-ordered operational channel, including suggested follow-up cadence.
+5. **Distribution** — The widget preview and snippet illustrate embedding on college or department pages; the RSS panel shows machine-readable redistribution.
+6. **Signal intake** — The report form and queue model how grassroots reports enter the picture alongside top-down status.
+7. **Evidence (optional)** — The network evidence action rounds out the story with a concrete operational attachment tied to the selected service.
 
-Lets a user submit a local outage report with:
+Together, these panels tell a coherent product story: **normalize once, communicate everywhere the campus looks.**
 
-- Affected service
-- Location or network
-- Description
-- Optional contact
+---
 
-Submitted reports appear in a local queue and are not sent anywhere.
+## Architecture & stack
 
-Demo value: adds bottom-up signal from students and staff.
+| Layer        | Choice                                      |
+| ------------ | ------------------------------------------- |
+| UI           | React (Vite), TypeScript, Tailwind CSS      |
+| Runtime/tool | Bun                                         |
+| Data         | Local mock data, in-memory state (no server) |
 
-### Network Evidence Card
+This repository is a **client-only reference**: no database, authentication, or live integrations are required to evaluate behavior. That keeps review fast and reproducible.
 
-Includes a "Run Network Evidence Check" button that attaches deterministic sample evidence to the selected incident:
+---
 
-- Latency
-- Jitter
-- Download quality
-- Upload quality
-- Checked timestamp
-
-Demo value: adds cybersecurity/status-ops credibility while keeping the demo reliable. Live speed testing is intentionally not required.
-
-## Tech Stack
-
-- Vite
-- React
-- TypeScript
-- Bun
-- Tailwind CSS
-- Local mock data and React state
-
-No backend, database, authentication, scraping, monitoring integration, or real Teams messaging is required.
-
-## Why This Stack
-
-Vite React keeps the demo fast, local, and simple. TypeScript makes the incident model explicit. Tailwind enables quick visual polish for cards, badges, forms, and dashboard layout. Bun keeps install and dev commands fast.
-
-## Run Locally
-
-Install dependencies:
+## Running the application
 
 ```bash
 bun install
-```
-
-Start the demo:
-
-```bash
 bun run dev
 ```
 
-Build for verification:
+Production build:
 
 ```bash
 bun run build

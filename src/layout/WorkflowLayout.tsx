@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useStatusBridge } from "../StatusBridgeContext";
+import statusBridgeLogo from "../assets/statusbridge-logo.png";
 
 const steps = [
   {
@@ -98,14 +99,11 @@ export function WorkflowLayout() {
         <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.24em] text-emerald-700">
-                StatusBridge Lite
-              </p>
-              <p className="mt-1 text-sm font-semibold text-slate-800">
-                After{" "}
-                <span className="text-emerald-800">status.uoregon.edu</span> is
-                updated — one step at a time.
-              </p>
+              <img
+                alt="StatusBridge Lite"
+                className="h-14 w-auto sm:h-16 lg:h-20"
+                src={statusBridgeLogo}
+              />
             </div>
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-slate-800">
               <span className="font-medium text-slate-500">Active service</span>{" "}

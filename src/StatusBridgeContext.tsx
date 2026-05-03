@@ -10,10 +10,8 @@ import {
   type ReactNode,
 } from "react";
 import { mockIncidents } from "./data/incidents";
-import {
-  generateNetworkEvidence,
-  generateStakeholderMessages,
-} from "./lib/generators";
+import { draftStakeholderMessagesWithGemini } from "./lib/geminiDraft";
+import { generateNetworkEvidence, generateStakeholderMessages } from "./lib/generators";
 import type {
   Incident,
   NetworkEvidence,
@@ -69,12 +67,33 @@ export function StatusBridgeProvider({ children }: { children: ReactNode }) {
         mockIncidents.find((i) => i.id === "canvas") ?? mockIncidents[0],
       ),
     );
+  const lastDraftRequestKeyRef = useRef<string>("");
 
   const selectedIncident = useMemo(
     () =>
       mockIncidents.find((incident) => incident.id === selectedIncidentId) ??
       mockIncidents[0],
     [selectedIncidentId],
+  );
+
+  const triageSignature = useMemo(() => {
+    return reports
+      .filter((r) => r.service === selectedIncident.service)
+      .map((r) => `${r.id}\0${r.createdAt}\0${r.location}\0${r.description}`)
+      .join("\n");
+  }, [reports, selectedIncident.service]);
+
+  const incidentSignature = useMemo(
+    () =>
+      [
+        selectedIncident.id,
+        selectedIncident.message,
+        selectedIncident.status,
+        selectedIncident.severity,
+        selectedIncident.updatedAt,
+        selectedIncident.affectedAudience,
+      ].join("\0"),
+    [selectedIncident],
   );
 
   useEffect(() => {
@@ -85,8 +104,39 @@ export function StatusBridgeProvider({ children }: { children: ReactNode }) {
   }, [selectedIncident.service]);
 
   useEffect(() => {
-    setStakeholderDrafts(generateStakeholderMessages(selectedIncident));
-  }, [selectedIncident.id]);
+    let cancelled = false;
+    const requestKey = `${incidentSignature}\n${triageSignature}`;
+
+    // React StrictMode re-runs effects in development; skip identical work.
+    if (lastDraftRequestKeyRef.current === requestKey) {
+      return;
+    }
+    lastDraftRequestKeyRef.current = requestKey;
+
+    void (async () => {
+      const hasKey = Boolean(
+        import.meta.env.VITE_GEMINI_API_KEY?.trim(),
+      );
+      if (!hasKey) {
+        if (!cancelled) {
+          setStakeholderDrafts(generateStakeholderMessages(selectedIncident));
+        }
+        return;
+      }
+
+      const next = await draftStakeholderMessagesWithGemini(
+        selectedIncident,
+        reports,
+      );
+      if (!cancelled) {
+        setStakeholderDrafts(next);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [incidentSignature, triageSignature, selectedIncident]);
 
   const submitReport = useCallback((event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

@@ -121,6 +121,25 @@ Together, the flow reads: **publish on the official page first, then redistribut
 
 This repository is a **client-only reference**: no database, authentication, or live integrations are required to evaluate behavior. That keeps review fast and reproducible.
 
+### Gemini (optional)
+
+Stakeholder drafts on step 2 can be generated with **Google Gemini** from the mock official incident (status-page line) plus **triage reports for the selected service** from step 1. Without a key, the app uses the same deterministic templates as before.
+
+1. Create an API key in [Google AI Studio](https://aistudio.google.com/apikey) (or enable **Generative Language API** in Google Cloud and create a key).
+2. Copy [`.env.example`](.env.example) to `.env.local` and set:
+
+   ```bash
+   VITE_GEMINI_API_KEY=your_key_here
+   ```
+
+   Optional: `VITE_GEMINI_MODEL=gemini-1.5-flash` if the default model is unavailable on your project.
+
+3. Restart `bun run dev`.
+
+**Security:** `VITE_*` variables are embedded in the client bundle. Use this for local demos only; production should call Gemini from a backend.
+
+**Quota:** Each incident switch or triage change for that service triggers one generation request—keep that in mind on the free tier.
+
 ---
 
 ## Running the application

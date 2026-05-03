@@ -51,26 +51,108 @@ export function formatDateTime(value: string): string {
 }
 
 export function formatStatus(status: Incident["status"]): string {
-  return status.replace("_", " ");
+  return status.replace(/_/g, " ");
+}
+
+type MessageVariant = "student" | "internal" | "executive";
+
+/** Compact copy blocks: short enough to avoid textarea scrolling on a typical laptop layout. */
+function buildCompactStakeholderBody(
+  incident: Incident,
+  variant: MessageVariant,
+): string {
+  const when = formatDateTime(incident.updatedAt);
+  const headline = `${incident.service} · ${formatStatus(incident.status)} · ${incident.severity} · updated ${when}`;
+  const officialBlock = [
+    "OFFICIAL (status.uoregon.edu)",
+    `"${incident.message}"`,
+  ].join("\n");
+
+  if (incident.status === "operational") {
+    const affected =
+      variant === "student"
+        ? [
+            "AFFECTED",
+            `${incident.affectedAudience} — Status shows operational; errors may be device or network-specific.`,
+          ].join("\n")
+        : variant === "internal"
+          ? [
+              "AFFECTED",
+              `${incident.affectedAudience} — Treat reports as isolated unless monitors contradict status.uoregon.edu.`,
+            ].join("\n")
+          : [
+              "AFFECTED",
+              `${incident.affectedAudience} — No exec action unless impact metrics or vendor risk spike.`,
+            ].join("\n");
+
+    const next =
+      variant === "student"
+        ? ["NEXT STEPS", "• Retry or try another browser/network.", "• Help: service.uoregon.edu"].join(
+            "\n",
+          )
+        : variant === "internal"
+          ? [
+              "NEXT STEPS",
+              `• Tag tickets with status time (${when}).`,
+              "• Escalate only if tooling disagrees with the status page.",
+            ].join("\n")
+          : [
+              "NEXT STEPS",
+              "• Brief leadership only on measurable impact change.",
+              "• Media / exec comms via University Communications & CIO protocols.",
+            ].join("\n");
+
+    return [headline, "", officialBlock, "", affected, "", next].join("\n");
+  }
+
+  const statusPhrase = statusLabels[incident.status];
+
+  const affected =
+    variant === "student"
+      ? [
+          "AFFECTED",
+          `${incident.affectedAudience} — Service is ${statusPhrase}; symptoms may vary by location or device.`,
+        ].join("\n")
+      : variant === "internal"
+        ? [
+            "AFFECTED",
+            `${incident.affectedAudience} — Align response to ${incident.severity}; mirror official language externally.`,
+          ].join("\n")
+        : [
+            "AFFECTED",
+            `${incident.affectedAudience} — Watch teaching/research deadlines and comms risk until cleared.`,
+          ].join("\n");
+
+  const next =
+    variant === "student"
+      ? [
+          "NEXT STEPS",
+          "• Watch status.uoregon.edu for updates.",
+          "• Save work often; use alternatives only if your instructor/supervisor approves.",
+          "• Help Desk if blocked: service.uoregon.edu",
+        ].join("\n")
+      : variant === "internal"
+        ? [
+            "NEXT STEPS",
+            `• Bridge / ticket hygiene; cite ${when} and official text above.`,
+            "• Pause risky changes on dependent systems until green.",
+          ].join("\n")
+        : [
+            "NEXT STEPS",
+            "• Sync with Communications if harm or press interest grows.",
+            "• Avoid speculative ETAs unless engineering posts them on status.",
+          ].join("\n");
+
+  return [headline, "", officialBlock, "", affected, "", next].join("\n");
 }
 
 export function generateStakeholderMessages(
   incident: Incident,
 ): StakeholderMessages {
-  const statusPhrase = statusLabels[incident.status];
-
-  if (incident.status === "operational") {
-    return {
-      student: `${incident.service} is operating normally. No action is needed at this time.`,
-      internal: `${incident.service} is currently operational. Continue routine monitoring and keep this status available for reference.`,
-      executive: `${incident.service} is operating normally with no active incident communication needed.`,
-    };
-  }
-
   return {
-    student: `${incident.service} service is ${statusPhrase}. IT is investigating. ${incident.affectedAudience} may experience service interruptions and should use available alternatives where possible.`,
-    internal: `${incident.service} ${formatStatus(incident.status)} reported for ${incident.affectedAudience.toLowerCase()} Continue monitoring user reports and network quality evidence while investigation is underway.`,
-    executive: `${incident.service} is ${statusPhrase}. IT is investigating and user-facing messaging is available for distribution.`,
+    student: buildCompactStakeholderBody(incident, "student"),
+    internal: buildCompactStakeholderBody(incident, "internal"),
+    executive: buildCompactStakeholderBody(incident, "executive"),
   };
 }
 

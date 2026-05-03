@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import { useStatusBridge } from "../StatusBridgeContext";
 import { mockIncidents } from "../data/incidents";
 import {
@@ -195,15 +194,6 @@ export function WorkspacePage() {
           </div>
         </div>
       </Panel>
-
-      <div className="flex justify-end border-t border-slate-200 pt-4">
-        <Link
-          className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-700"
-          to="/messages"
-        >
-          Next: copy-ready messages →
-        </Link>
-      </div>
     </div>
   );
 }

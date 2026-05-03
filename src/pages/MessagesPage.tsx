@@ -1,78 +1,107 @@
-import { useMemo } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { useStatusBridge } from "../StatusBridgeContext";
-import {
-  Badge,
-  CopyButton,
-  Panel,
-  severityClasses,
-} from "../components/bridgeUi";
+import { Badge, CopyButton, severityClasses } from "../components/bridgeUi";
 import { generateStakeholderMessages } from "../lib/generators";
+
+type AudienceKey = "student" | "internal" | "executive";
+
+const audienceTabs: { key: AudienceKey; label: string; hint: string }[] = [
+  { key: "student", label: "Student-facing", hint: "Student-facing update" },
+  { key: "internal", label: "IT / internal", hint: "IT / internal update" },
+  { key: "executive", label: "Executive", hint: "Executive summary" },
+];
 
 export function MessagesPage() {
   const { selectedIncident } = useStatusBridge();
-
-  const messages = useMemo(
-    () => generateStakeholderMessages(selectedIncident),
-    [selectedIncident],
+  const [audience, setAudience] = useState<AudienceKey>("student");
+  const [drafts, setDrafts] = useState(() =>
+    generateStakeholderMessages(selectedIncident),
   );
 
+  useEffect(() => {
+    setDrafts(generateStakeholderMessages(selectedIncident));
+  }, [selectedIncident.id]);
+
+  const activeBody =
+    audience === "student"
+      ? drafts.student
+      : audience === "internal"
+        ? drafts.internal
+        : drafts.executive;
+
+  const activeHint =
+    audienceTabs.find((t) => t.key === audience)?.hint ?? "Message";
+
   return (
-    <div className="space-y-6">
-      <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm">
-        <p className="text-xs font-bold uppercase tracking-[0.28em] text-slate-500">
-          Step 2 · Copy-ready messaging
-        </p>
-        <p className="mt-2 max-w-3xl text-sm text-slate-600">
-          Copy and paste into email, Teams, or exec briefings. Text matches your
-          selected service:{" "}
-          <span className="font-semibold text-slate-800">
-            {selectedIncident.service}
-          </span>
-          .
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <header className="shrink-0">
+        <h1 className="text-xl font-bold tracking-tight text-slate-950">
+          Stakeholder messages
+        </h1>
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          <p className="text-sm text-slate-600">
+            Active service:{" "}
+            <span className="font-semibold text-slate-800">
+              {selectedIncident.service}
+            </span>
+          </p>
           <Badge className={severityClasses[selectedIncident.severity]}>
             {selectedIncident.severity}
           </Badge>
         </div>
-      </div>
+      </header>
 
-      <Panel title="Stakeholder messages" eyebrow="Audience-specific text">
-        <div className="grid gap-3 md:grid-cols-1 lg:grid-cols-3">
-          {[
-            ["Student-facing update", messages.student],
-            ["IT / internal update", messages.internal],
-            ["Executive summary", messages.executive],
-          ].map(([title, message]) => (
-            <div
-              className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
-              key={title}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="font-bold text-slate-950">{title}</h3>
-                <CopyButton value={message} />
-              </div>
-              <p className="mt-2 text-sm leading-6 text-slate-700">{message}</p>
-            </div>
-          ))}
+      <section
+        aria-label="Stakeholder messages"
+        className="flex min-h-0 flex-1 flex-col gap-2"
+      >
+        <div
+          className="flex shrink-0 flex-wrap gap-2"
+          role="tablist"
+          aria-label="Choose audience"
+        >
+          {audienceTabs.map(({ key, label }) => {
+            const selected = audience === key;
+            return (
+              <button
+                className={`rounded-xl px-4 py-2.5 text-sm font-bold transition ${
+                  selected
+                    ? "bg-slate-950 text-white shadow-md ring-2 ring-emerald-400/40"
+                    : "border border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:text-emerald-900"
+                }`}
+                key={key}
+                onClick={() => setAudience(key)}
+                role="tab"
+                aria-selected={selected}
+                type="button"
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
-      </Panel>
 
-      <div className="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:justify-between">
-        <Link
-          className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-900"
-          to="/workspace"
-        >
-          ← Back to workspace
-        </Link>
-        <Link
-          className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-6 py-3 text-sm font-bold text-white transition hover:bg-emerald-700"
-          to="/outreach"
-        >
-          Next: outreach previews →
-        </Link>
-      </div>
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+            <h2 className="text-sm font-bold text-slate-950">{activeHint}</h2>
+            <CopyButton value={activeBody} />
+          </div>
+          <div className="flex min-h-0 flex-1 flex-col p-2 pt-1.5">
+            <textarea
+              value={activeBody}
+              onChange={(event) =>
+                setDrafts((previous) => ({
+                  ...previous,
+                  [audience]: event.target.value,
+                }))
+              }
+              className="min-h-0 flex-1 resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs leading-snug text-slate-800 shadow-inner outline-none transition-[background-color,box-shadow] duration-200 ease-out selection:bg-emerald-200 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-500/25 sm:text-[13px] sm:leading-snug"
+              spellCheck={true}
+              aria-label={`${activeHint} text to edit and copy`}
+            />
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

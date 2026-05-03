@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import { useMemo } from "react";
 import { useStatusBridge } from "../StatusBridgeContext";
 import { mockIncidents } from "../data/incidents";
@@ -177,20 +176,6 @@ export function OutreachPage() {
         )}
       </Panel>
 
-      <div className="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:justify-between">
-        <Link
-          className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-900"
-          to="/messages"
-        >
-          ← Back to messages
-        </Link>
-        <Link
-          className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-900"
-          to="/workspace"
-        >
-          Back to workspace
-        </Link>
-      </div>
     </div>
   );
 }

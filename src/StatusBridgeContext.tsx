@@ -2,7 +2,9 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent,
   type ReactNode,
@@ -11,8 +13,12 @@ import { mockIncidents } from "./data/incidents";
 import { generateNetworkEvidence } from "./lib/generators";
 import type { Incident, NetworkEvidence, UserReport } from "./types";
 
+const defaultServiceName =
+  mockIncidents.find((i) => i.id === "canvas")?.service ??
+  mockIncidents[0].service;
+
 export const emptyReport = {
-  service: "Wireless",
+  service: defaultServiceName,
   location: "",
   description: "",
   contact: "",
@@ -36,10 +42,12 @@ const StatusBridgeContext = createContext<StatusBridgeContextValue | null>(
 
 export function StatusBridgeProvider({ children }: { children: ReactNode }) {
   const [selectedIncidentId, setSelectedIncidentId] = useState(
-    mockIncidents[0].id,
+    mockIncidents.some((i) => i.id === "canvas") ? "canvas" : mockIncidents[0].id,
   );
   const [reports, setReports] = useState<UserReport[]>([]);
   const [reportDraft, setReportDraft] = useState(emptyReport);
+  const reportDraftRef = useRef(reportDraft);
+  reportDraftRef.current = reportDraft;
   const [networkEvidence, setNetworkEvidence] = useState<
     Record<string, NetworkEvidence>
   >({});
@@ -51,27 +59,35 @@ export function StatusBridgeProvider({ children }: { children: ReactNode }) {
     [selectedIncidentId],
   );
 
+  useEffect(() => {
+    setReportDraft((draft) => ({
+      ...draft,
+      service: selectedIncident.service,
+    }));
+  }, [selectedIncident.service]);
+
   const submitReport = useCallback((event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    setReportDraft((draft) => {
-      if (!draft.location.trim() || !draft.description.trim()) {
-        return draft;
-      }
+    const draft = reportDraftRef.current;
+    const location = draft.location.trim();
+    const description = draft.description.trim();
+    if (!location || !description) {
+      return;
+    }
 
-      setReports((currentReports) => [
-        {
-          id: crypto.randomUUID(),
-          service: draft.service,
-          location: draft.location.trim(),
-          description: draft.description.trim(),
-          contact: draft.contact.trim() || undefined,
-          createdAt: new Date().toISOString(),
-        },
-        ...currentReports,
-      ]);
-      return { ...emptyReport, service: draft.service };
-    });
+    setReports((currentReports) => [
+      {
+        id: crypto.randomUUID(),
+        service: draft.service,
+        location,
+        description,
+        contact: draft.contact.trim() || undefined,
+        createdAt: new Date().toISOString(),
+      },
+      ...currentReports,
+    ]);
+    setReportDraft({ ...emptyReport, service: draft.service });
   }, []);
 
   const runEvidenceCheck = useCallback(() => {

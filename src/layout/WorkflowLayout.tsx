@@ -1,6 +1,31 @@
+import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useStatusBridge } from "../StatusBridgeContext";
-import statusBridgeLogo from "../assets/statusbridge-logo.png";
+import statusBridgeLogoDark from "../assets/StatusBridge_Logo_Dark.png";
+import statusBridgeLogoLight from "../assets/StatusBridge_Logo_Light.png";
+
+/** 06:00–19:59 local → light logo; night → dark. */
+function isLocalDaytime(d: Date): boolean {
+  const h = d.getHours();
+  return h >= 6 && h < 20;
+}
+
+function useStatusBridgeLogoForLocalTime() {
+  const [logo, setLogo] = useState<string>(() =>
+    isLocalDaytime(new Date()) ? statusBridgeLogoLight : statusBridgeLogoDark,
+  );
+  useEffect(() => {
+    const sync = () => {
+      setLogo(
+        isLocalDaytime(new Date()) ? statusBridgeLogoLight : statusBridgeLogoDark,
+      );
+    };
+    sync();
+    const id = window.setInterval(sync, 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+  return logo;
+}
 
 const steps = [
   {
@@ -92,6 +117,7 @@ function PhaseArrowNav() {
 
 export function WorkflowLayout() {
   const { selectedIncident } = useStatusBridge();
+  const statusBridgeLogo = useStatusBridgeLogoForLocalTime();
 
   return (
     <div className="flex min-h-screen flex-col bg-[radial-gradient(circle_at_top_left,#d1fae5,transparent_32rem),linear-gradient(180deg,#f8fafc,#eef2ff)] text-slate-900">

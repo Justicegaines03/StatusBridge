@@ -1,53 +1,92 @@
-# StatusBridge Lite
+<div align="center">
 
-**StatusBridge Lite** is a reference implementation of an **incident communication layer** for higher education IT. It sits alongside the official status page: the status page remains the system of record; StatusBridge turns incident signals into **audience-specific, channel-ready outputs** in one place.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./src/assets/StatusBridge_Logo_Dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="./src/assets/StatusBridge_Logo_Light.png">
+  <img alt="StatusBridge logo" src="./src/assets/StatusBridge_Logo_Light.png" width="340">
+</picture>
 
-The shipped experience uses **realistic mock services** (UO-style naming) so reviewers can evaluate flows and copy without live production feeds or external integrations.
+### Your status page tells the truth. StatusBridge tells everyone else.
+
+<br/>
+
+![Built with React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat&logo=vite&logoColor=white)
+![Bun](https://img.shields.io/badge/Bun-000000?style=flat&logo=bun&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-06B6D4?style=flat&logo=tailwindcss&logoColor=white)
+
+<br/>
+
+**Overview:** [What it is](#what-statusbridge-is) · [Problem](#problem) · [Solution](#solution) · [Features](#features)
+
+**Run it:** [Quick start](#quick-start) · [Gemini optional](#gemini-optional) · [Stack](#architecture--stack)
+
+---
+
+</div>
+
+
+<div align="center">
+
+# One incident. Many audiences. Same truth.
+
+</div>
+
+## What StatusBridge is
+
+StatusBridge Lite sits beside an official status page and helps the incident team translate one verified service update into the formats everyone else needs: student-facing copy, IT/internal updates, executive summaries, embeddable widgets, RSS-style output, and triage intake.
+
+The shipped experience uses realistic mock services with UO-style naming, so reviewers can evaluate the workflow without live production feeds, credentials, databases, or external integrations.
 
 ---
 
 ## The story
 
-Universities invest in official status pages, yet during an incident the same underlying fact still has to reach students, IT staff, executives, department sites, and downstream tools—often through separate drafts, channels, and formats. The team that maintains a page such as **status.uoregon.edu** would use StatusBridge **after** publishing there: the official page stays canonical; StatusBridge is where that same team turns one verified incident into every other format the campus needs.
+Universities invest in official status pages, yet during an incident the same underlying fact still has to reach students, IT staff, executives, department sites, and downstream tools—often through separate drafts, channels, and formats.
+
+A team maintaining a page such as **status.uoregon.edu** would use StatusBridge **after** publishing the canonical update there. The official page stays authoritative. StatusBridge becomes the workspace where that same verified incident is turned into every other message campus needs.
 
 ---
 
 ## Problem
 
-When services degrade or fail, communication work multiplies:
+When services degrade or fail, communication work multiplies exactly when teams have the least spare attention.
 
-- **Students and campus users** need clear, non-technical language and timely reassurance.
-- **IT and operations** need a consistent operational narrative they can extend over time.
+- **Students and campus users** need clear, non-technical reassurance.
+- **IT and operations** need a consistent operational narrative.
 - **Leadership** needs short, decision-ready summaries.
-- **Departments and college sites** need embeddable indicators that match official posture.
-- **Automation and campus systems** benefit from structured, machine-readable feeds.
-- **Support organizations** need a structured path for crowdsourced reports from the field.
+- **Departments and college sites** need embeddable status indicators.
+- **Campus systems** benefit from structured, machine-readable feeds.
+- **Support teams** need a path for crowdsourced field reports.
 
-That work is **repetitive, urgent, and easy to defer** when teams are focused on restoration—exactly when communication matters most.
+The result is repetitive, urgent, high-stakes communication work that is easy to defer while everyone focuses on restoration.
 
 ---
 
 ## Solution
 
-StatusBridge Lite **normalizes** incident-like inputs into a single internal model, then **derives** parallel outputs from that model: stakeholder-ready text, a collaboration-style thread layout, RSS-style XML for active incidents, an embeddable widget representation, a local intake queue for user-submitted reports, and an optional deterministic “network evidence” card for operational context.
-
-One normalized incident drives many surfaces—so messaging stays **aligned** even when the format changes.
+StatusBridge Lite normalizes incident-like inputs into a single internal model, then derives parallel outputs from that model.
 
 ```text
-Incident signals (mock / companion to official page)
+Official status signal / mock incident
         |
 normalizeIncident()
         |
-Current Incidents view
+Current Incidents workspace
         |
-Derived outputs
-  · Stakeholder messages (student / IT / executive)
-  · Collaboration-style thread preview
-  · RSS XML (active incidents)
-  · Embeddable widget + snippet
-  · User report queue
+Derived communication surfaces
+  · Student-ready message
+  · IT/internal update
+  · Executive summary
+  · Collaboration-style thread
+  · RSS XML for active incidents
+  · Embeddable department widget
+  · Local outage report queue
   · Optional network evidence card
 ```
+
+One normalized incident drives many surfaces, so the message stays aligned even when the audience and format change.
 
 ---
 
@@ -55,11 +94,11 @@ Derived outputs
 
 ### Current incidents
 
-A dashboard lists monitored services (e.g. wireless, learning management, identity, email, VPN) with **status**, **severity**, **human-readable message**, **source**, and **last updated** time. Reviewers see service impact at a glance and select any incident to drive the rest of the product.
+A dashboard lists monitored services—wireless, learning management, identity, email, VPN, and more—with status, severity, human-readable message, source, and last-updated time.
 
 ### Incident model
 
-Incidents conform to a single TypeScript shape—status, severity, service identity, messaging, provenance, and timestamps—so every downstream generator reads the same truth.
+Every downstream generator reads from the same TypeScript shape, keeping provenance, service identity, status, severity, messaging, and timestamps aligned.
 
 ```ts
 type Incident = {
@@ -75,74 +114,58 @@ type Incident = {
 
 ### Stakeholder messaging
 
-For the selected incident, the product produces **copy-ready** variants: student-facing, IT/internal, and executive summary—each tuned to the same facts so tone and emphasis match the audience without manual rewrites from scratch.
+For the selected incident, StatusBridge produces copy-ready variants for students, IT/internal teams, and executives—each tuned to the same facts.
 
 ### Collaboration-style thread
 
-A **channel-style** preview presents the incident as a threaded operational narrative: initial update, follow-on context, and suggested next communication—with timestamps and severity visible in line with how many campuses run incident comms in chat tools.
+A channel-style preview presents the incident as an operational narrative: initial update, follow-on context, suggested next communication, timestamp, and visible severity.
 
 ### RSS output
 
-Active (non-operational) incidents are reflected in **visible RSS XML**, illustrating subscription and integration paths for portals, monitors, and other systems.
+Active, non-operational incidents appear as visible RSS XML, showing how the same incident posture could feed portals, monitors, and downstream systems.
 
 ### Embeddable status widget
 
-A compact **department-facing** status card mirrors the selected incident, paired with a **copyable embed snippet** so the same posture can be reflected on unit websites without duplicating status infrastructure.
+A compact department-facing card mirrors the selected incident and includes a copyable embed snippet for unit websites.
 
 ### Outage reporting
 
-A structured form captures **service**, **location or network**, **description**, and optional **contact**. Submissions appear in an **on-device queue** in this reference build, modeling bottom-up signal from campus users into the comms workflow.
+A structured intake form captures service, location or network, description, and optional contact. Submissions appear in an on-device queue for this reference build.
 
-### Network evidence (sample)
+### Network evidence sample
 
-A control attaches **deterministic sample** latency, jitter, and quality indicators to the selected incident, illustrating how operational evidence can sit next to narrative updates without depending on live network tests in a review environment.
+A deterministic sample evidence card can attach latency, jitter, and quality indicators to the selected incident without requiring live network tests.
 
 ---
 
-## Product tour (what reviewers see)
+## Product tour
 
-The interface follows the **status-team workflow**: confirm what was published on the official page, capture intake, then generate copy and channel previews.
+The interface follows a status-team workflow:
 
-1. **Incident workspace and intake** — Services mirror the official roster; the team selects the active line item, sees the **canonical message** aligned with the status page, files **campus outage reports** through intake, and reviews the **triage queue**.
-2. **Copy-ready messaging** — **Student**, **IT/internal**, and **executive** text is derived from that selection for paste-ready use in email, chat, and briefings.
-3. **Outreach and distribution** — **Collaboration-style thread**, **embeddable unit widget** (with snippet), **RSS** for feeds and integrations, and optional **network evidence** for operational context complete the picture.
+1. **Confirm the incident** — Select a monitored service and review the canonical message.
+2. **Capture field signal** — File campus outage reports and review the local triage queue.
+3. **Generate audience copy** — Produce student, IT/internal, and executive-ready messaging.
+4. **Distribute everywhere else** — Preview a collaboration thread, RSS output, embeddable widget, and optional evidence card.
 
-Together, the flow reads: **publish on the official page first, then redistribute everywhere else from one workspace.**
+Together, the flow is simple: **publish on the official page first, then redistribute everywhere else from one workspace.**
 
 ---
 
 ## Architecture & stack
 
-| Layer        | Choice                                      |
-| ------------ | ------------------------------------------- |
-| UI           | React (Vite), TypeScript, Tailwind CSS      |
-| Runtime/tool | Bun                                         |
-| Data         | Local mock data, in-memory state (no server) |
+| Layer | Choice |
+| --- | --- |
+| UI | React, Vite |
+| Language | TypeScript |
+| Styling | Tailwind CSS |
+| Runtime/tooling | Bun |
+| Data | Local mock data, in-memory state |
 
-This repository is a **client-only reference**: no database, authentication, or live integrations are required to evaluate behavior. That keeps review fast and reproducible.
-
-### Gemini (optional)
-
-Stakeholder drafts on step 2 can be generated with **Google Gemini** from the mock official incident (status-page line) plus **triage reports for the selected service** from step 1. Without a key, the app uses the same deterministic templates as before.
-
-1. Create an API key in [Google AI Studio](https://aistudio.google.com/apikey) (or enable **Generative Language API** in Google Cloud and create a key).
-2. Copy [`.env.example`](.env.example) to `.env.local` and set:
-
-   ```bash
-   VITE_GEMINI_API_KEY=your_key_here
-   ```
-
-   Optional: `VITE_GEMINI_MODEL=gemini-1.5-flash` if the default model is unavailable on your project.
-
-3. Restart `bun run dev`.
-
-**Security:** `VITE_*` variables are embedded in the client bundle. Use this for local demos only; production should call Gemini from a backend.
-
-**Quota:** Each incident switch or triage change for that service triggers one generation request—keep that in mind on the free tier.
+This repository is a client-only reference implementation. No database, authentication, or live integrations are required to evaluate the experience.
 
 ---
 
-## Running the application
+## Quick start
 
 ```bash
 bun install
@@ -154,3 +177,52 @@ Production build:
 ```bash
 bun run build
 ```
+
+Typecheck only:
+
+```bash
+bun run typecheck
+```
+
+---
+
+## Gemini optional
+
+Stakeholder drafts can optionally be generated with Google Gemini from the selected mock official incident plus triage reports for that service. Without a key, the app falls back to deterministic templates.
+
+1. Create an API key in [Google AI Studio](https://aistudio.google.com/apikey).
+2. Copy [`.env.example`](.env.example) to `.env.local`.
+3. Set the key:
+
+   ```bash
+   VITE_GEMINI_API_KEY=your_key_here
+   ```
+
+   Optional fallback model override:
+
+   ```bash
+   VITE_GEMINI_MODEL=gemini-1.5-flash
+   ```
+
+4. Restart the dev server:
+
+   ```bash
+   bun run dev
+   ```
+
+> [!CAUTION]
+> `VITE_*` variables are embedded in the client bundle. Use this for local demos only; a production version should call Gemini from a backend.
+
+---
+
+## Why it matters
+
+Status pages are good at publishing truth. Incidents still need translation.
+
+StatusBridge exists for the moment after the status page update goes live: when students, staff, executives, department sites, support teams, and automation all need the same truth in different shapes.
+
+<div align="center">
+
+**StatusBridge tells everyone else.**
+
+</div>
